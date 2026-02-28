@@ -60,6 +60,7 @@ export default function GymPageClient({ gym, initialSessions, memberData }: GymP
         isAuthenticated: boolean
         role?: string | null
     } | null>(memberData ? { isMember: true, isAuthenticated: true, role: 'member' } : null)
+    const [liveMemberData, setLiveMemberData] = useState(memberData)
     const [joinLoading, setJoinLoading] = useState(false)
     const [bookingId, setBookingId] = useState<string | null>(null)
     const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
@@ -68,17 +69,21 @@ export default function GymPageClient({ gym, initialSessions, memberData }: GymP
     const searchParams = useSearchParams()
     const autoJoin = searchParams.get('join') === 'true'
 
+    // Always verify membership on mount to handle sign-out and stale SSR
     useEffect(() => {
-        if (!memberData) {
-            checkMembership(gym.id).then((result) => {
-                setMembership(result)
+        checkMembership(gym.id).then((result) => {
+            setMembership(result)
 
-                // Auto-join if requested and not already a member
-                if (autoJoin && result.isAuthenticated && !result.isMember && !joinLoading) {
-                    handleJoin()
-                }
-            })
-        }
+            // If the user signed out but we have stale SSR memberData, clear it
+            if (!result.isAuthenticated || !result.isMember) {
+                setLiveMemberData(null)
+            }
+
+            // Auto-join if requested and not already a member
+            if (autoJoin && result.isAuthenticated && !result.isMember && !joinLoading) {
+                handleJoin()
+            }
+        })
     }, [gym.id, autoJoin])
 
     const handleJoin = async () => {
@@ -149,9 +154,9 @@ export default function GymPageClient({ gym, initialSessions, memberData }: GymP
 
     const location = [gym.address, gym.city, gym.state, gym.zip_code].filter(Boolean).join(', ')
 
-    // If we have memberData, render the full member dashboard
-    if (memberData && membership?.isMember) {
-        return <MemberView gym={gym} memberData={memberData} location={location} onShare={handleShare} copied={copied} />
+    // If we have verified member data, render the full member dashboard
+    if (liveMemberData && membership?.isMember) {
+        return <MemberView gym={gym} memberData={liveMemberData} location={location} onShare={handleShare} copied={copied} />
     }
 
     // Otherwise, render the guest/public view
