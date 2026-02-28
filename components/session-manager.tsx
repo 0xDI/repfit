@@ -522,7 +522,7 @@ export function SessionManager({ sessions }: SessionManagerProps) {
                             className="h-8 w-8"
                             onClick={() => handleUpdateDuration(session.id)}
                           >
-                            <Check className="h-4 w-4 text-green-600" />
+                            <Check className="h-4 w-4 text-orange-600" />
                           </Button>
                           <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setEditingId(null)}>
                             <X className="h-4 w-4 text-red-600" />

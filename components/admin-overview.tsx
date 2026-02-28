@@ -354,7 +354,7 @@ export function AdminOverview({ upcomingSessions, stats }: AdminOverviewProps) {
                                       className="flex items-center justify-between p-3 rounded-lg border bg-card"
                                     >
                                       <div className="flex items-center gap-3">
-                                        <CheckCircle2 className="h-4 w-4 text-green-500" />
+                                        <CheckCircle2 className="h-4 w-4 text-orange-500" />
                                         <div>
                                           <p className="text-sm font-medium">
                                             {booking.profiles?.full_name || "Unknown"}

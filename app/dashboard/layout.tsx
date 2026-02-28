@@ -1,7 +1,7 @@
 import React from "react"
 import { redirect } from "next/navigation"
 import { createClient, createAdminClient } from "@/lib/supabase/server"
-import { DashboardNav } from "@/components/dashboard-nav"
+import { DashboardHeader } from "@/components/dashboard-header"
 
 export default async function DashboardLayout({
   children,
@@ -21,32 +21,6 @@ export default async function DashboardLayout({
   // Use admin client to bypass RLS and check if user owns a gym
   const adminClient = await createAdminClient()
 
-  // Fix: Handle case where user has multiple gyms by taking the most recent one
-  const { data: ownedGym, error: gymError } = await adminClient
-    .from("gyms")
-    .select("*")
-    .eq("owner_id", user.id)
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle()
-
-  if (ownedGym) {
-    // Get profile data
-    const { data: profile } = await adminClient
-      .from("profiles")
-      .select("full_name, age")
-      .eq("id", user.id)
-      .single()
-
-    // User owns a gym - they have owner access
-    return (
-      <div className="flex min-h-screen flex-col">
-        <DashboardNav gym={ownedGym} user={user} role="owner" profile={profile} />
-        <main className="flex-1">{children}</main>
-      </div>
-    )
-  }
-
   // Check if user is a member of a gym
   const { data: membership } = await adminClient
     .from("gym_members")
@@ -54,19 +28,44 @@ export default async function DashboardLayout({
     .eq("user_id", user.id)
     .maybeSingle()
 
+  // Fix: Handle case where user has multiple gyms by taking the most recent one
+  const { data: ownedGym } = await adminClient
+    .from("gyms")
+    .select("*")
+    .eq("owner_id", user.id)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  if (ownedGym && !membership) {
+    // Only redirect gym owners who are NOT members of any gym to the admin panel
+    // If they have a membership, let them see the customer dashboard
+    redirect("/admin")
+  }
+
   if (membership) {
-    // Get gym slug for redirect
+    // Get gym slug and name for redirect and header
     const { data: gym } = await adminClient
       .from("gyms")
-      .select("slug")
+      .select("name, slug")
       .eq("id", membership.gym_id)
       .single()
 
     if (gym && gym.slug) {
-      // Allow members to access the dashboard
-      // redirect(`/gym/${gym.slug}`)
+      // Fetch profile for the header
+      const { data: profile } = await adminClient
+        .from("profiles")
+        .select("*")
+        .eq("id", user.id)
+        .single()
+
       return (
         <div className="flex min-h-screen flex-col">
+          <DashboardHeader
+            profile={profile}
+            userEmail={user.email}
+            currentGym={{ name: gym.name, slug: gym.slug }}
+          />
           <main className="flex-1">{children}</main>
         </div>
       )
@@ -75,5 +74,4 @@ export default async function DashboardLayout({
 
   // If not owner and not member (or member of invalid gym), redirect to onboarding
   redirect("/onboarding")
-
 }

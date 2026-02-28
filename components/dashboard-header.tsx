@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { signOut } from "@/lib/actions/auth"
 import { useRouter } from "next/navigation"
+import GymSwitcher from "@/components/gym-switcher"
 
 interface DashboardHeaderProps {
   profile: {
@@ -23,9 +24,13 @@ interface DashboardHeaderProps {
   } | null
   userEmail?: string
   unreadCount?: number
+  currentGym?: {
+    name: string
+    slug: string
+  }
 }
 
-export function DashboardHeader({ profile, userEmail, unreadCount = 0 }: DashboardHeaderProps) {
+export function DashboardHeader({ profile, userEmail, unreadCount = 0, currentGym }: DashboardHeaderProps) {
   const router = useRouter()
 
   const initials = profile?.full_name
@@ -48,8 +53,13 @@ export function DashboardHeader({ profile, userEmail, unreadCount = 0 }: Dashboa
         {/* Left: Logo and Name */}
         <div className="flex items-center gap-3 md:gap-4">
           <Image src="/repfit-logo.png" alt="REPFIT" width={48} height={48} className="h-10 w-10 md:h-12 md:w-12" />
-          <div>
+          <div className="flex items-center gap-2">
             <h1 className="text-xl font-bold tracking-tight md:text-2xl">REPFIT</h1>
+            <span className="text-muted-foreground/40 text-xl font-light">/</span>
+            <GymSwitcher
+              currentGymName={currentGym?.name || "Switch Gym"}
+              currentGymSlug={currentGym?.slug || ""}
+            />
           </div>
         </div>
 

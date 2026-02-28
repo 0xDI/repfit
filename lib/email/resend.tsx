@@ -12,7 +12,7 @@ const getResend = (): Resend | null => {
 
 const getFromEmail = () => {
   const domain = process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev"
-  return `PB Training <${domain}>`
+  return `REPFIT <${domain}>`
 }
 
 export async function sendSubscriptionLowBalanceEmail(
@@ -87,7 +87,7 @@ export async function sendSubscriptionLowBalanceEmail(
             </p>
           </div>
           <div class="footer">
-            <p>© ${new Date().getFullYear()} PB Training. All rights reserved.</p>
+            <p>© ${new Date().getFullYear()} REPFIT. All rights reserved.</p>
             <p>This is an automated notification from your gym subscription system.</p>
           </div>
         </div>
@@ -189,7 +189,7 @@ export async function sendSubscriptionExpiredEmail(email: string, name: string, 
             </p>
           </div>
           <div class="footer">
-            <p>© ${new Date().getFullYear()} PB Training. All rights reserved.</p>
+            <p>© ${new Date().getFullYear()} REPFIT. All rights reserved.</p>
             <p>This is an automated notification from your gym subscription system.</p>
           </div>
         </div>
@@ -302,7 +302,7 @@ export async function sendSubscriptionRenewalConfirmation(
             </p>
           </div>
           <div class="footer">
-            <p>© ${new Date().getFullYear()} PB Training. Keep up the great work! We're excited to support your fitness goals.</p>
+            <p>© ${new Date().getFullYear()} REPFIT. Keep up the great work! We're excited to support your fitness goals.</p>
           </div>
         </div>
       </body>
@@ -388,7 +388,7 @@ export async function sendBookingConfirmationEmail(
             </p>
           </div>
           <div class="footer">
-            <p>© ${new Date().getFullYear()} PB Training. See you at the gym!</p>
+            <p>© ${new Date().getFullYear()} REPFIT. See you at the gym!</p>
           </div>
         </div>
       </body>
@@ -474,7 +474,7 @@ export async function sendBookingCancellationEmail(
             </p>
           </div>
           <div class="footer">
-            <p>© ${new Date().getFullYear()} PB Training.</p>
+            <p>© ${new Date().getFullYear()} REPFIT.</p>
           </div>
         </div>
       </body>
@@ -571,7 +571,7 @@ export async function sendBookingRescheduledEmail(
             </p>
           </div>
           <div class="footer">
-            <p>© ${new Date().getFullYear()} PB Training.</p>
+            <p>© ${new Date().getFullYear()} REPFIT.</p>
           </div>
         </div>
       </body>
@@ -668,7 +668,7 @@ export async function sendSubscriptionUpdatedEmail(
             </p>
           </div>
           <div class="footer">
-            <p>© ${new Date().getFullYear()} PB Training.</p>
+            <p>© ${new Date().getFullYear()} REPFIT.</p>
           </div>
         </div>
       </body>

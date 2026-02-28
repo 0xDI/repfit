@@ -18,17 +18,40 @@ import {
     Sparkles,
     UserPlus,
     Loader2,
+    Info,
 } from 'lucide-react'
+import { useSearchParams } from 'next/navigation'
 
 import type { PublicGymData, PublicSession } from '@/lib/actions/public-gym'
 import { checkMembership, joinGym, bookPublicSession, getGymSessions } from '@/lib/actions/public-gym'
 
+// Dashboard components (used for member view)
+import { StatsCards } from '@/components/stats-cards'
+import { BookingCalendar } from '@/components/booking-calendar'
+import { MyBookings } from '@/components/my-bookings'
+
 interface GymPageClientProps {
     gym: PublicGymData
     initialSessions: PublicSession[]
+    memberData?: {
+        profile: any
+        isAdmin: boolean
+        subscriptionData: any
+        sessionsWithParticipants: any[]
+        bookings: any[]
+        hasNoSubscription: boolean
+        totalTokens: number
+        stats: {
+            upcomingBookings: number
+            completedThisMonth: number
+            currentStreak: number
+            longestStreak: number
+            weeklyActivity: number[]
+        }
+    } | null
 }
 
-export default function GymPageClient({ gym, initialSessions }: GymPageClientProps) {
+export default function GymPageClient({ gym, initialSessions, memberData }: GymPageClientProps) {
     const router = useRouter()
     const [isPending, startTransition] = useTransition()
     const [sessions, setSessions] = useState(initialSessions)
@@ -36,19 +59,31 @@ export default function GymPageClient({ gym, initialSessions }: GymPageClientPro
         isMember: boolean
         isAuthenticated: boolean
         role?: string | null
-    } | null>(null)
+    } | null>(memberData ? { isMember: true, isAuthenticated: true, role: 'member' } : null)
     const [joinLoading, setJoinLoading] = useState(false)
     const [bookingId, setBookingId] = useState<string | null>(null)
     const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
     const [copied, setCopied] = useState(false)
 
+    const searchParams = useSearchParams()
+    const autoJoin = searchParams.get('join') === 'true'
+
     useEffect(() => {
-        checkMembership(gym.id).then(setMembership)
-    }, [gym.id])
+        if (!memberData) {
+            checkMembership(gym.id).then((result) => {
+                setMembership(result)
+
+                // Auto-join if requested and not already a member
+                if (autoJoin && result.isAuthenticated && !result.isMember && !joinLoading) {
+                    handleJoin()
+                }
+            })
+        }
+    }, [gym.id, autoJoin])
 
     const handleJoin = async () => {
         if (!membership?.isAuthenticated) {
-            router.push(`/auth/login?redirect=/gym/${gym.slug}`)
+            router.push(`/auth/login?redirect=/${gym.slug}?join=true`)
             return
         }
 
@@ -61,13 +96,15 @@ export default function GymPageClient({ gym, initialSessions }: GymPageClientPro
         } else {
             setFeedback({ type: 'success', message: "Welcome! You've joined the gym 🎉" })
             setMembership(prev => prev ? { ...prev, isMember: true, role: 'member' } : null)
+            // Reload to get member data
+            router.refresh()
         }
         setJoinLoading(false)
     }
 
     const handleBook = async (sessionId: string) => {
         if (!membership?.isAuthenticated) {
-            router.push(`/auth/login?redirect=/gym/${gym.slug}`)
+            router.push(`/auth/login?redirect=/${gym.slug}`)
             return
         }
 
@@ -112,6 +149,146 @@ export default function GymPageClient({ gym, initialSessions }: GymPageClientPro
 
     const location = [gym.address, gym.city, gym.state, gym.zip_code].filter(Boolean).join(', ')
 
+    // If we have memberData, render the full member dashboard
+    if (memberData && membership?.isMember) {
+        return <MemberView gym={gym} memberData={memberData} location={location} onShare={handleShare} copied={copied} />
+    }
+
+    // Otherwise, render the guest/public view
+    return <GuestView
+        gym={gym}
+        sessions={sessions}
+        membership={membership}
+        joinLoading={joinLoading}
+        bookingId={bookingId}
+        feedback={feedback}
+        copied={copied}
+        location={location}
+        onJoin={handleJoin}
+        onBook={handleBook}
+        onShare={handleShare}
+    />
+}
+
+
+// ─── MEMBER VIEW ───────────────────────────────────────────────────────────────
+function MemberView({ gym, memberData, location, onShare, copied }: {
+    gym: PublicGymData
+    memberData: NonNullable<GymPageClientProps['memberData']>
+    location: string
+    onShare: () => void
+    copied: boolean
+}) {
+    return (
+        <div>
+            {/* Compact Member Header */}
+            <section className="border-b border-border/40 bg-secondary/20">
+                <div className="container px-4 py-6">
+                    <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                        <div className="space-y-1">
+                            <div className="flex items-center gap-3">
+                                <h1 className="text-2xl font-bold tracking-tight">{gym.name}</h1>
+                                <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-bold border border-primary/20">
+                                    <CheckCircle2 className="h-3.5 w-3.5" /> Member
+                                </div>
+                            </div>
+                            {location && (
+                                <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                                    <MapPin className="h-4 w-4" /> {location}
+                                </div>
+                            )}
+                        </div>
+                        <div className="flex items-center gap-3">
+                            {gym.phone && (
+                                <a href={`tel:${gym.phone}`} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-primary transition-colors">
+                                    <Phone className="h-4 w-4" /> {gym.phone}
+                                </a>
+                            )}
+                            <Button variant="outline" size="sm" onClick={onShare} className="rounded-xl">
+                                <Share2 className="h-4 w-4 mr-1.5" />
+                                {copied ? 'Copied!' : 'Share'}
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            {/* Full Dashboard Content */}
+            <main className="mx-auto w-full max-w-2xl space-y-4 p-4 md:max-w-7xl md:space-y-6 md:p-8">
+                {/* Subscription Warning */}
+                {memberData.hasNoSubscription && (
+                    <Card className="border-primary bg-primary/10 shadow-sm">
+                        <CardContent className="p-4 md:p-6">
+                            <div className="flex items-start gap-3">
+                                <Info className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                                <div className="flex-1 space-y-3">
+                                    <div>
+                                        <h3 className="font-semibold text-primary">No Active Subscription</h3>
+                                        <p className="text-sm text-foreground/80 mt-1">
+                                            You need an active subscription plan to book sessions. Contact the gym to get started!
+                                        </p>
+                                    </div>
+                                    {gym.phone && (
+                                        <a
+                                            href={`tel:${gym.phone}`}
+                                            className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors shadow-sm shadow-primary/20"
+                                        >
+                                            <Phone className="h-4 w-4" />
+                                            Call {gym.phone}
+                                        </a>
+                                    )}
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+                )}
+
+                {/* Stats Cards */}
+                <StatsCards
+                    workoutTokens={memberData.totalTokens}
+                    totalBookings={memberData.bookings.length}
+                    upcomingBookings={memberData.stats.upcomingBookings}
+                    completedThisMonth={memberData.stats.completedThisMonth}
+                    currentStreak={memberData.stats.currentStreak}
+                    longestStreak={memberData.stats.longestStreak}
+                    weeklyActivity={memberData.stats.weeklyActivity}
+                    subscriptionEndDate={memberData.subscriptionData?.end_date}
+                />
+
+                {/* BookingCalendar + MyBookings Grid */}
+                <div className="grid w-full gap-4 md:gap-6 lg:grid-cols-2">
+                    <div id="booking" className="min-w-0">
+                        <BookingCalendar
+                            sessions={memberData.sessionsWithParticipants || []}
+                            userTokens={memberData.profile.workout_tokens}
+                            hasActiveSubscription={!memberData.hasNoSubscription}
+                        />
+                    </div>
+
+                    <div className="min-w-0">
+                        <MyBookings bookings={memberData.bookings} isAdmin={memberData.isAdmin} />
+                    </div>
+                </div>
+            </main>
+        </div>
+    )
+}
+
+
+// ─── GUEST VIEW ────────────────────────────────────────────────────────────────
+function GuestView({ gym, sessions, membership, joinLoading, bookingId, feedback, copied, location, onJoin, onBook, onShare }: {
+    gym: PublicGymData
+    sessions: PublicSession[]
+    membership: { isMember: boolean; isAuthenticated: boolean; role?: string | null } | null
+    joinLoading: boolean
+    bookingId: string | null
+    feedback: { type: 'success' | 'error'; message: string } | null
+    copied: boolean
+    location: string
+    onJoin: () => void
+    onBook: (sessionId: string) => void
+    onShare: () => void
+}) {
     // Group sessions by date
     const sessionsByDate = sessions.reduce<Record<string, PublicSession[]>>((acc, session) => {
         const date = session.session_date
@@ -191,18 +368,20 @@ export default function GymPageClient({ gym, initialSessions }: GymPageClientPro
                                     <Loader2 className="h-4 w-4 animate-spin mr-2" /> Loading...
                                 </Button>
                             ) : membership.isMember ? (
-                                <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-500/10 text-emerald-400 text-sm font-medium border border-emerald-500/20">
+                                <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-orange-500/10 text-orange-600 text-sm font-medium border border-orange-500/20">
                                     <CheckCircle2 className="h-4 w-4" /> You're a member
                                 </div>
                             ) : (
                                 <Button
                                     size="lg"
-                                    onClick={handleJoin}
+                                    onClick={onJoin}
                                     disabled={joinLoading}
                                     className="rounded-xl px-8 bg-gradient-to-r from-primary to-primary/80 shadow-lg shadow-primary/20"
                                 >
                                     {joinLoading ? (
                                         <><Loader2 className="h-4 w-4 animate-spin mr-2" /> Joining...</>
+                                    ) : !membership.isAuthenticated ? (
+                                        <><UserPlus className="h-4 w-4 mr-2" /> Sign in to Join</>
                                     ) : (
                                         <><UserPlus className="h-4 w-4 mr-2" /> Join This Gym</>
                                     )}
@@ -212,7 +391,7 @@ export default function GymPageClient({ gym, initialSessions }: GymPageClientPro
                             <Button
                                 variant="outline"
                                 size="lg"
-                                onClick={handleShare}
+                                onClick={onShare}
                                 className="rounded-xl"
                             >
                                 <Share2 className="h-4 w-4 mr-2" />
@@ -227,8 +406,8 @@ export default function GymPageClient({ gym, initialSessions }: GymPageClientPro
             {feedback && (
                 <div className="container px-4">
                     <div className={`max-w-3xl mx-auto p-4 rounded-xl text-sm font-medium ${feedback.type === 'success'
-                            ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                            : 'bg-destructive/10 text-destructive border border-destructive/20'
+                        ? 'bg-orange-500/10 text-orange-600 border border-orange-500/20'
+                        : 'bg-destructive/10 text-destructive border border-destructive/20'
                         }`}>
                         {feedback.message}
                     </div>
@@ -262,7 +441,7 @@ export default function GymPageClient({ gym, initialSessions }: GymPageClientPro
                                         const isFull = session.available_slots <= 0
                                         const isBooking = bookingId === session.id
                                         const slotsPercentage = (session.available_slots / session.total_slots) * 100
-                                        const slotsColor = slotsPercentage > 50 ? 'text-emerald-400' : slotsPercentage > 20 ? 'text-amber-400' : 'text-red-400'
+                                        const slotsColor = slotsPercentage > 50 ? 'text-orange-600' : slotsPercentage > 20 ? 'text-amber-500' : 'text-primary'
 
                                         return (
                                             <Card
@@ -296,7 +475,7 @@ export default function GymPageClient({ gym, initialSessions }: GymPageClientPro
                                                     {!isFull && (
                                                         <Button
                                                             size="sm"
-                                                            onClick={() => handleBook(session.id)}
+                                                            onClick={() => onBook(session.id)}
                                                             disabled={isBooking || !membership?.isMember}
                                                             className="rounded-xl"
                                                             variant={membership?.isMember ? 'default' : 'outline'}

@@ -210,3 +210,29 @@ export async function bookPublicSession(gymId: string, sessionId: string) {
 
     return { success: true }
 }
+
+// Search gyms by name or city — public
+export async function searchGyms(query?: string) {
+    const admin = await createAdminClient()
+
+    let builder = admin
+        .from("gyms")
+        .select("id, name, slug, city, state, logo_url")
+        .eq("is_active", true)
+        .not("slug", "is", null)
+        .order("name", { ascending: true })
+        .limit(20)
+
+    if (query && query.trim().length > 0) {
+        const q = `%${query.trim()}%`
+        builder = builder.or(`name.ilike.${q},city.ilike.${q}`)
+    }
+
+    const { data: gyms, error } = await builder
+
+    if (error) {
+        return { gyms: [], error: error.message }
+    }
+
+    return { gyms: gyms || [], error: null }
+}

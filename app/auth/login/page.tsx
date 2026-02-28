@@ -13,7 +13,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import Image from 'next/image'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useState } from 'react'
 
 type AuthStep = 'email' | 'otp'
@@ -28,6 +28,8 @@ export default function Page() {
   const [success, setSuccess] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const redirectTo = searchParams.get('redirect') || undefined
 
   const handleSendOTP = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -56,7 +58,7 @@ export default function Page() {
 
     try {
       // Server Action handles verification AND redirect
-      const result = await verifyOtpAction(email, otp)
+      const result = await verifyOtpAction(email, otp, redirectTo)
       if (result?.error) throw new Error(result.error)
     } catch (error: unknown) {
       setError(error instanceof Error ? error.message : 'Invalid code. Please try again.')
@@ -131,7 +133,7 @@ export default function Page() {
                       />
                     </div>
                     {error && <p className="text-sm text-destructive">{error}</p>}
-                    {success && <p className="text-sm text-green-600">{success}</p>}
+                    {success && <p className="text-sm text-orange-600">{success}</p>}
                     <Button type="submit" className="w-full" disabled={isLoading}>
                       {isLoading ? 'Sending code...' : 'Continue with Email'}
                     </Button>

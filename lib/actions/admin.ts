@@ -2,6 +2,7 @@
 
 import { createClient, createAdminClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
+import { cookies } from "next/headers"
 
 async function checkIsAdmin(): Promise<{ isAdmin: boolean; error?: string }> {
   const supabase = await createClient()
@@ -85,6 +86,7 @@ export async function updateSession(
   data: {
     total_slots?: number
     is_open?: boolean
+    workout_duration_minutes?: number
   },
 ) {
   const { isAdmin, error } = await checkIsAdmin()
@@ -924,6 +926,22 @@ export async function getCurrentUserGym() {
   } = await supabase.auth.getUser()
   if (!user) return { success: false, error: "Not authenticated", gym: null }
   const adminClient = await createAdminClient()
+
+  // Check for active gym cookie
+  const cookieStore = await cookies()
+  const activeGymId = cookieStore.get("active_gym_id")?.value
+
+  if (activeGymId) {
+    const { data: gym, error: gymError } = await adminClient
+      .from("gyms")
+      .select("id, name, slug, logo_url, email, phone, address, city, state, zip_code, country")
+      .eq("id", activeGymId)
+      .eq("owner_id", user.id)
+      .single()
+    if (gym) return { success: true, gym }
+  }
+
+  // Fallback to most recent gym
   const { data: gym, error: gymError } = await adminClient
     .from("gyms")
     .select("id, name, slug, logo_url, email, phone, address, city, state, zip_code, country")
@@ -935,10 +953,41 @@ export async function getCurrentUserGym() {
   return { success: true, gym }
 }
 
+export async function switchGym(gymId: string) {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return { success: false, error: "Not authenticated" }
+
+  // Verify ownership
+  const adminClient = await createAdminClient()
+  const { data: gym } = await adminClient
+    .from("gyms")
+    .select("id")
+    .eq("id", gymId)
+    .eq("owner_id", user.id)
+    .single()
+  if (!gym) return { success: false, error: "Not authorized" }
+
+  const cookieStore = await cookies()
+  cookieStore.set("active_gym_id", gymId, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    maxAge: 60 * 60 * 24 * 365, // 1 year
+    path: "/",
+  })
+
+  revalidatePath("/admin", "layout")
+  return { success: true }
+}
+
 export async function updateGymSettings(
   gymId: string,
   data: {
     name?: string
+    slug?: string
     logo_url?: string
     address?: string
     city?: string
@@ -987,5 +1036,15 @@ export async function uploadGymLogo(gymId: string, formData: FormData): Promise<
   const { data: upload, error: uploadError } = await adminClient.storage.from("public").upload(path, file, { upsert: true })
   if (uploadError) return { success: false, error: uploadError.message }
   const { data: urlData } = adminClient.storage.from("public").getPublicUrl(upload.path)
+
+  // Auto-update gym with new logo URL
+  await adminClient
+    .from("gyms")
+    .update({ logo_url: urlData.publicUrl })
+    .eq("id", gymId)
+
+  revalidatePath("/admin", "layout")
+  revalidatePath("/admin/settings")
+
   return { success: true, url: urlData.publicUrl }
 }

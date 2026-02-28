@@ -3,6 +3,7 @@ import { redirect } from "next/navigation"
 import { createClient, createAdminClient } from "@/lib/supabase/server"
 import { AdminSidebar } from "@/components/admin-sidebar"
 import { AdminHeader } from "@/components/admin-header"
+import { cookies } from "next/headers"
 
 export default async function AdminLayout({
   children,
@@ -30,12 +31,16 @@ export default async function AdminLayout({
   // Check admin access via multiple paths
   const isAdminByProfile = profile?.is_admin === true || profile?.role === "admin"
 
-  const { data: ownedGym } = await adminClient
+  const { data: ownedGyms } = await adminClient
     .from("gyms")
-    .select("id")
+    .select("id, name, logo_url")
     .eq("owner_id", user.id)
-    .limit(1)
-    .maybeSingle()
+    .order("created_at", { ascending: false })
+
+  // Determine active gym from cookie
+  const cookieStore = await cookies()
+  const activeGymId = cookieStore.get("active_gym_id")?.value
+  const ownedGym = (activeGymId && ownedGyms?.find(g => g.id === activeGymId)) || ownedGyms?.[0] || null
 
   const isAdmin = isAdminByProfile || !!ownedGym
 
@@ -52,8 +57,13 @@ export default async function AdminLayout({
   return (
     <div className="flex min-h-screen bg-background">
       <AdminSidebar />
-      <div className="w-full md:ml-64">
-        <AdminHeader profile={displayProfile} userEmail={user.email} />
+      <div className="w-full md:ml-[72px]">
+        <AdminHeader
+          profile={displayProfile}
+          userEmail={user.email}
+          currentGym={ownedGym}
+          allGyms={ownedGyms || []}
+        />
         <main className="space-y-6 p-6">{children}</main>
       </div>
     </div>

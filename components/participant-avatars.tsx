@@ -57,9 +57,9 @@ export function ParticipantAvatars({
 
   const getColorClass = (userId: string) => {
     const colors = [
-      "bg-red-500",
+      "bg-orange-600",
       "bg-blue-500",
-      "bg-green-500",
+      "bg-amber-500",
       "bg-yellow-500",
       "bg-purple-500",
       "bg-pink-500",

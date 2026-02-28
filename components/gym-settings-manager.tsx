@@ -8,13 +8,15 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
-import { Upload } from "lucide-react"
+import { Upload, Globe, CheckCircle2, Loader2 } from "lucide-react"
 import Image from "next/image"
 import { updateGymSettings, uploadGymLogo } from "@/lib/actions/admin"
+import { checkSlugAvailability } from "@/app/actions/onboarding"
 
 type Gym = {
   id: string
   name?: string | null
+  slug?: string | null
   logo_url?: string | null
   address?: string | null
   phone?: string | null
@@ -32,6 +34,9 @@ export function GymSettingsManager({ gym: initialGym }: { gym: Gym }) {
   const [address, setAddress] = useState("")
   const [logoPreview, setLogoPreview] = useState("/repfit-logo.png")
   const [logoFile, setLogoFile] = useState<File | null>(null)
+  const [gymSlug, setGymSlug] = useState("")
+  const [slugStatus, setSlugStatus] = useState<{ available: boolean; error?: string } | null>(null)
+  const [slugChecking, setSlugChecking] = useState(false)
   const gymId = initialGym?.id
 
   useEffect(() => {
@@ -42,6 +47,7 @@ export function GymSettingsManager({ gym: initialGym }: { gym: Gym }) {
       setEmail(initialGym.email ?? "")
       setAddress(initialGym.address ?? "")
       setLogoPreview(initialGym.logo_url || "/repfit-logo.png")
+      setGymSlug(initialGym.slug ?? "")
     }
   }, [initialGym])
 
@@ -77,6 +83,7 @@ export function GymSettingsManager({ gym: initialGym }: { gym: Gym }) {
       }
       const res = await updateGymSettings(gymId, {
         name: gymName || undefined,
+        slug: gymSlug || undefined,
         address: location || undefined,
       })
       if (res.success) {
@@ -161,6 +168,63 @@ export function GymSettingsManager({ gym: initialGym }: { gym: Gym }) {
               onChange={(e) => setLocation(e.target.value)}
               placeholder="Enter location"
             />
+          </div>
+
+          {/* Slug / Gym Link */}
+          <div className="space-y-2">
+            <Label htmlFor="gym-slug" className="flex items-center gap-2">
+              <Globe className="w-4 h-4" />
+              Gym Link
+            </Label>
+            <div className="flex items-center gap-0">
+              <div className="h-10 px-3 bg-muted border border-r-0 border-border rounded-l-md flex items-center text-sm text-muted-foreground select-none">
+                repfitapp.com/
+              </div>
+              <Input
+                id="gym-slug"
+                value={gymSlug}
+                onChange={(e) => {
+                  const val = e.target.value
+                    .toLowerCase()
+                    .replace(/[^a-z0-9-]/g, '')
+                    .replace(/-+/g, '-')
+                    .slice(0, 30)
+                  setGymSlug(val)
+                  setSlugStatus(null)
+                  if (val.length >= 3 && val !== initialGym?.slug) {
+                    setSlugChecking(true)
+                    checkSlugAvailability(val).then(res => {
+                      setSlugStatus(res)
+                      setSlugChecking(false)
+                    })
+                  } else if (val === initialGym?.slug) {
+                    setSlugStatus({ available: true })
+                  }
+                }}
+                placeholder="your-gym"
+                className="rounded-l-none"
+              />
+            </div>
+            <div className="h-5">
+              {slugChecking && (
+                <p className="text-xs text-muted-foreground flex items-center gap-1">
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                  Checking...
+                </p>
+              )}
+              {!slugChecking && slugStatus?.available && gymSlug === initialGym?.slug && (
+                <p className="text-xs text-muted-foreground">Current link</p>
+              )}
+              {!slugChecking && slugStatus?.available && gymSlug !== initialGym?.slug && (
+                <p className="text-xs text-orange-500 flex items-center gap-1">
+                  <CheckCircle2 className="w-3 h-3" />
+                  Available
+                </p>
+              )}
+              {!slugChecking && slugStatus && !slugStatus.available && (
+                <p className="text-xs text-red-500">{slugStatus.error}</p>
+              )}
+            </div>
           </div>
 
           <Button onClick={handleSaveSettings} disabled={loading}>

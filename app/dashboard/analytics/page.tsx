@@ -123,7 +123,7 @@ export default async function AnalyticsPage() {
             </CardContent>
           </Card>
 
-          <Card className="border-border/50 bg-gradient-to-br from-orange-500/10 to-red-600/10">
+          <Card className="border-border/50 bg-gradient-to-br from-orange-500/10 to-orange-600/10">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium">Workout Streak</CardTitle>
               <Clock className="h-4 w-4 text-primary" />

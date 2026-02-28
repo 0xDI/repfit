@@ -1,11 +1,11 @@
 "use server"
 
 import { createClient, createAdminClient } from "@/lib/supabase/server"
-import { redirect } from "next/navigation"
 import { revalidatePath } from "next/cache"
 
 interface GymFormData {
   name: string
+  slug: string
   email: string
   phone: string
   address: string
@@ -31,6 +31,7 @@ export async function createGym(formData: GymFormData) {
   const gymData = {
     owner_id: user.id,
     name: formData.name,
+    slug: formData.slug,
     email: formData.email,
     phone: formData.phone,
     address: formData.address,
@@ -80,7 +81,7 @@ export async function completeOnboarding(gymId: string) {
     return { error: error.message }
   }
 
-  redirect("/dashboard")
+  return { success: true }
 }
 
 export async function checkOnboardingStatus() {
@@ -165,4 +166,93 @@ export async function startFreeTrial(gymId: string) {
   revalidatePath('/onboarding', 'layout')
 
   return { success: true }
+}
+
+export async function uploadGymLogoOnboarding(gymId: string, formData: FormData) {
+  const supabase = await createClient()
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) {
+    return { success: false, error: "Not authenticated" }
+  }
+
+  // Use admin client to bypass RLS
+  const adminClient = await createAdminClient()
+
+  // Verify user owns this gym
+  const { data: gym } = await adminClient
+    .from("gyms")
+    .select("id")
+    .eq("id", gymId)
+    .eq("owner_id", user.id)
+    .single()
+
+  if (!gym) {
+    return { success: false, error: "Not authorized" }
+  }
+
+  const file = formData.get("file") as File | null
+  if (!file?.size) return { success: false, error: "No file provided" }
+
+  const ext = file.name.split(".").pop() || "png"
+  const path = `gym-logos/${gymId}/logo.${ext}`
+
+  const { data: upload, error: uploadError } = await adminClient.storage
+    .from("public")
+    .upload(path, file, { upsert: true })
+
+  if (uploadError) {
+    return { success: false, error: uploadError.message }
+  }
+
+  const { data: urlData } = adminClient.storage
+    .from("public")
+    .getPublicUrl(upload.path)
+
+  // Update gym with logo URL
+  await adminClient
+    .from("gyms")
+    .update({ logo_url: urlData.publicUrl })
+    .eq("id", gymId)
+
+  return { success: true, url: urlData.publicUrl }
+}
+
+const RESERVED_SLUGS = [
+  "admin", "dashboard", "auth", "onboarding", "api", "gym",
+  "settings", "login", "signup", "register", "profile",
+  "account", "billing", "pricing", "about", "contact",
+  "help", "support", "terms", "privacy", "test",
+]
+
+export async function checkSlugAvailability(slug: string) {
+  // Format validation
+  if (!slug || slug.length < 3 || slug.length > 30) {
+    return { available: false, error: "Slug must be 3-30 characters" }
+  }
+  if (!/^[a-z0-9][a-z0-9-]*[a-z0-9]$/.test(slug) && slug.length > 2) {
+    return { available: false, error: "Only lowercase letters, numbers, and hyphens allowed" }
+  }
+  if (/--/.test(slug)) {
+    return { available: false, error: "No consecutive hyphens" }
+  }
+  if (RESERVED_SLUGS.includes(slug)) {
+    return { available: false, error: "This name is reserved" }
+  }
+
+  const adminClient = await createAdminClient()
+  const { data: existing } = await adminClient
+    .from("gyms")
+    .select("id")
+    .eq("slug", slug)
+    .maybeSingle()
+
+  if (existing) {
+    return { available: false, error: "Already taken" }
+  }
+
+  return { available: true }
 }

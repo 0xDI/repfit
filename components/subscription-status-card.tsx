@@ -31,10 +31,10 @@ export function SubscriptionStatusCard({ subscription }: SubscriptionStatusCardP
 
   if (!hasActiveSubscription) {
     return (
-      <Card className="border-destructive/50 bg-destructive/5">
+      <Card className="border-primary/50 bg-primary/5">
         <CardHeader className="pb-3">
           <div className="flex items-center gap-2">
-            <AlertCircle className="h-5 w-5 text-destructive" />
+            <AlertCircle className="h-5 w-5 text-primary" />
             <CardTitle className="text-base md:text-lg">
               {language === "el" ? "Δεν Υπάρχει Ενεργή Συνδρομή" : "No Active Subscription"}
             </CardTitle>

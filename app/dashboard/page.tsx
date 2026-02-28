@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
-import { DashboardHeader } from "@/components/dashboard-header"
 import { StatsCards } from "@/components/stats-cards"
 import { BookingCalendar } from "@/components/booking-calendar"
 import { MyBookings } from "@/components/my-bookings"
@@ -197,77 +196,77 @@ export default async function DashboardPage() {
 
   return (
     <div className="min-h-screen overflow-x-hidden bg-background">
-      <UserInfoModal open={needsProfileCompletion} userEmail={user.email} />
+      <UserInfoModal open={needsProfileCompletion} userEmail={user.email || ""} />
 
       <main className="mx-auto w-full max-w-2xl space-y-4 p-4 md:max-w-7xl md:space-y-6 md:p-8">
-          {unreadNotifications && unreadNotifications.length > 0 && (
-            <NotificationBanner notifications={unreadNotifications} />
-          )}
+        {unreadNotifications && unreadNotifications.length > 0 && (
+          <NotificationBanner notifications={unreadNotifications} />
+        )}
 
-          {adminMessages && adminMessages.length > 0 && (
-            <div className="space-y-3">
-              {adminMessages.map((message) => (
-                <Alert key={message.id} className="rounded-xl border-border/50 md:rounded-2xl">
-                  <Info className="h-5 w-5" />
-                  <AlertTitle className="text-base">{message.title}</AlertTitle>
-                  <AlertDescription className="text-sm">{message.message}</AlertDescription>
-                </Alert>
-              ))}
-            </div>
-          )}
+        {adminMessages && adminMessages.length > 0 && (
+          <div className="space-y-3">
+            {adminMessages.map((message) => (
+              <Alert key={message.id} className="rounded-xl border-border/50 md:rounded-2xl">
+                <Info className="h-5 w-5" />
+                <AlertTitle className="text-base">{message.title}</AlertTitle>
+                <AlertDescription className="text-sm">{message.message}</AlertDescription>
+              </Alert>
+            ))}
+          </div>
+        )}
 
-          <div className="space-y-4 md:space-y-6">
-            {hasNoSubscription && (
-              <Card className="border-primary/50 bg-primary/5">
-                <CardContent className="p-4 md:p-6">
-                  <div className="flex items-start gap-3">
-                    <Info className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-                    <div className="flex-1 space-y-3">
-                      <div>
-                        <h3 className="font-semibold text-primary">No Active Subscription</h3>
-                        <p className="text-sm text-foreground/80 mt-1">
-                          You need an active subscription plan to book sessions. Contact us to get started today!
-                        </p>
-                      </div>
-                      <a
-                        href="tel:+306937043559"
-                        className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors shadow-sm shadow-primary/20"
-                      >
-                        <Phone className="h-4 w-4" />
-                        Call +30 693 704 3559
-                      </a>
+        <div className="space-y-4 md:space-y-6">
+          {hasNoSubscription && (
+            <Card className="border-primary bg-primary/10 shadow-sm">
+              <CardContent className="p-4 md:p-6">
+                <div className="flex items-start gap-3">
+                  <Info className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                  <div className="flex-1 space-y-3">
+                    <div>
+                      <h3 className="font-semibold text-primary">No Active Subscription</h3>
+                      <p className="text-sm text-foreground/80 mt-1">
+                        You need an active subscription plan to book sessions. Contact us to get started today!
+                      </p>
                     </div>
+                    <a
+                      href="tel:+306937043559"
+                      className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors shadow-sm shadow-primary/20"
+                    >
+                      <Phone className="h-4 w-4" />
+                      Call +30 693 704 3559
+                    </a>
                   </div>
-                </CardContent>
-              </Card>
-            )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
-            <StatsCards
-              workoutTokens={totalTokens}
-              totalBookings={bookings.length}
-              upcomingBookings={upcomingBookings.length}
-              completedThisMonth={completedThisMonth.length}
-              currentStreak={currentStreak}
-              longestStreak={longestStreak}
-              weeklyActivity={weeklyActivity}
-              subscriptionEndDate={subscriptionData?.end_date}
-            />
+          <StatsCards
+            workoutTokens={totalTokens}
+            totalBookings={bookings.length}
+            upcomingBookings={upcomingBookings.length}
+            completedThisMonth={completedThisMonth.length}
+            currentStreak={currentStreak}
+            longestStreak={longestStreak}
+            weeklyActivity={weeklyActivity}
+            subscriptionEndDate={subscriptionData?.end_date}
+          />
 
-            <div className="grid w-full gap-4 md:gap-6 lg:grid-cols-2">
-              <div id="booking" className="min-w-0">
-                <BookingCalendar
-                  sessions={sessions || []}
-                  userTokens={profile.workout_tokens}
-                  hasActiveSubscription={!hasNoSubscription}
-                />
-              </div>
+          <div className="grid w-full gap-4 md:gap-6 lg:grid-cols-2">
+            <div id="booking" className="min-w-0">
+              <BookingCalendar
+                sessions={sessions || []}
+                userTokens={profile.workout_tokens}
+                hasActiveSubscription={!hasNoSubscription}
+              />
+            </div>
 
-              <div className="min-w-0">
-                <MyBookings bookings={bookings} isAdmin={isAdmin} />
-              </div>
+            <div className="min-w-0">
+              <MyBookings bookings={bookings} isAdmin={isAdmin} />
             </div>
           </div>
-        </main>
+        </div>
+      </main>
     </div>
   )
 }

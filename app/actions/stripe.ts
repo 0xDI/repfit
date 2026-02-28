@@ -41,7 +41,7 @@ export async function createCheckoutSession(
     }
 
     const headersList = await headers()
-    const origin = headersList.get("origin") || "http://localhost:3000"
+    const origin = headersList.get("origin") || process.env.NEXT_PUBLIC_SITE_URL || "https://repfitapp.com"
 
     // Create or retrieve Stripe customer
     let customerId = gym.stripe_customer_id
@@ -122,7 +122,7 @@ export async function createCustomerPortalSession(
     }
 
     const headersList = await headers()
-    const origin = headersList.get("origin") || "http://localhost:3000"
+    const origin = headersList.get("origin") || process.env.NEXT_PUBLIC_SITE_URL || "https://repfitapp.com"
 
     const session = await stripe.billingPortal.sessions.create({
       customer: gym.stripe_customer_id,

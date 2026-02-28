@@ -1,9 +1,9 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { createGym, completeOnboarding, checkOnboardingStatus } from '@/app/actions/onboarding'
+import { createGym, completeOnboarding, checkOnboardingStatus, uploadGymLogoOnboarding, checkSlugAvailability } from '@/app/actions/onboarding'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -15,6 +15,7 @@ import {
   ArrowRight,
   Check,
   Building2,
+  Camera,
   MapPin,
   Phone,
   Sparkles,
@@ -26,7 +27,11 @@ import {
   Activity,
   Baby,
   Clock,
-  UserCheck
+  UserCheck,
+  Link2,
+  Copy,
+  CheckCircle2,
+  Globe
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -37,7 +42,7 @@ const GYM_TYPES = [
     title: 'Community Hub',
     icon: Users,
     description: 'A place for connection & growth',
-    color: 'bg-emerald-500',
+    color: 'bg-orange-600',
   },
   {
     id: 'performance',
@@ -124,6 +129,8 @@ type Step = 'vision' | 'focus' | 'values' | 'audience' | 'operations' | 'details
 
 export default function OnboardingPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const isCreatingNew = searchParams.get('new') === 'true'
   const [step, setStep] = useState<Step>('vision')
   const [vision, setVision] = useState<string | null>(null)
   const [focus, setFocus] = useState<string | null>(null)
@@ -140,6 +147,13 @@ export default function OnboardingPage() {
     city: '',
   })
   const [isLoading, setIsLoading] = useState(false)
+  const [logoFile, setLogoFile] = useState<File | null>(null)
+  const [logoPreview, setLogoPreview] = useState<string | null>(null)
+  const [slug, setSlug] = useState('')
+  const [slugStatus, setSlugStatus] = useState<{ available: boolean; error?: string } | null>(null)
+  const [slugChecking, setSlugChecking] = useState(false)
+  const [createdGymSlug, setCreatedGymSlug] = useState('')
+  const [linkCopied, setLinkCopied] = useState(false)
 
   // Safety check: Redirect based on auth status
   useEffect(() => {
@@ -154,8 +168,8 @@ export default function OnboardingPage() {
           return
         }
 
-        // Handling already onboarded users
-        if (result && !result.needsOnboarding) {
+        // Handling already onboarded users — but allow if creating a new gym
+        if (result && !result.needsOnboarding && !isCreatingNew) {
           router.push('/dashboard')
         }
       } catch (error) {
@@ -180,6 +194,7 @@ export default function OnboardingPage() {
     try {
       const gymPayload = {
         name: details.name,
+        slug: slug,
         email: "",
         phone: details.phone,
         address: details.address,
@@ -194,9 +209,16 @@ export default function OnboardingPage() {
       const response = await createGym(gymPayload as any)
 
       if (response && response.data) {
+        // Upload logo if selected
+        if (logoFile) {
+          const logoFormData = new FormData()
+          logoFormData.append('file', logoFile)
+          await uploadGymLogoOnboarding(response.data.id, logoFormData)
+        }
+
         await completeOnboarding(response.data.id)
+        setCreatedGymSlug(slug)
         setStep('success')
-        setTimeout(() => router.push('/onboarding/subscription'), 3000)
       } else {
         const errorMsg = response?.error || "Unknown error"
         console.error('Onboarding failed:', errorMsg)
@@ -571,6 +593,41 @@ export default function OnboardingPage() {
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-6">
+                {/* Logo Upload */}
+                <div className="flex flex-col items-center gap-3">
+                  <label htmlFor="logo-upload" className="cursor-pointer group">
+                    <div className="relative w-24 h-24 rounded-2xl border-2 border-dashed border-border hover:border-[#FC4C02] transition-colors overflow-hidden bg-card">
+                      {logoPreview ? (
+                        <img src={logoPreview} alt="Logo" className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground group-hover:text-[#FC4C02] transition-colors">
+                          <Camera className="w-8 h-8 mb-1" />
+                          <span className="text-[10px] font-medium">Add Logo</span>
+                        </div>
+                      )}
+                      {logoPreview && (
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                          <Camera className="w-6 h-6 text-white" />
+                        </div>
+                      )}
+                    </div>
+                  </label>
+                  <input
+                    id="logo-upload"
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0]
+                      if (file) {
+                        setLogoFile(file)
+                        setLogoPreview(URL.createObjectURL(file))
+                      }
+                    }}
+                  />
+                  <p className="text-xs text-muted-foreground">Optional • 200×200px recommended</p>
+                </div>
+
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="gym-name" className="text-foreground font-semibold">Gym Name</Label>
@@ -578,10 +635,87 @@ export default function OnboardingPage() {
                       id="gym-name"
                       placeholder="e.g. Titan Performance"
                       value={details.name}
-                      onChange={(e) => setDetails(prev => ({ ...prev, name: e.target.value }))}
+                      onChange={(e) => {
+                        const name = e.target.value
+                        setDetails(prev => ({ ...prev, name }))
+                        // Auto-generate slug from name
+                        const autoSlug = name
+                          .toLowerCase()
+                          .replace(/[^a-z0-9\s-]/g, '')
+                          .replace(/\s+/g, '-')
+                          .replace(/-+/g, '-')
+                          .replace(/^-|-$/g, '')
+                          .slice(0, 30)
+                        setSlug(autoSlug)
+                        setSlugStatus(null)
+                        // Check availability
+                        if (autoSlug.length >= 3) {
+                          setSlugChecking(true)
+                          checkSlugAvailability(autoSlug).then(res => {
+                            setSlugStatus(res)
+                            setSlugChecking(false)
+                          })
+                        }
+                      }}
                       required
                       className="h-12 bg-card border-border focus:border-[#FC4C02] rounded-lg"
                     />
+                  </div>
+
+                  {/* Slug / Gym Link */}
+                  <div className="space-y-2">
+                    <Label htmlFor="gym-slug" className="text-foreground font-semibold flex items-center gap-2">
+                      <Globe className="w-4 h-4" />
+                      Your Gym Link
+                    </Label>
+                    <div className="flex items-center gap-0">
+                      <div className="h-12 px-3 bg-muted border border-r-0 border-border rounded-l-lg flex items-center text-sm text-muted-foreground select-none">
+                        repfitapp.com/
+                      </div>
+                      <Input
+                        id="gym-slug"
+                        placeholder="your-gym"
+                        value={slug}
+                        onChange={(e) => {
+                          const val = e.target.value
+                            .toLowerCase()
+                            .replace(/[^a-z0-9-]/g, '')
+                            .replace(/-+/g, '-')
+                            .slice(0, 30)
+                          setSlug(val)
+                          setSlugStatus(null)
+                          if (val.length >= 3) {
+                            setSlugChecking(true)
+                            checkSlugAvailability(val).then(res => {
+                              setSlugStatus(res)
+                              setSlugChecking(false)
+                            })
+                          }
+                        }}
+                        required
+                        className="h-12 bg-card border-border focus:border-[#FC4C02] rounded-l-none rounded-r-lg"
+                      />
+                    </div>
+                    {/* Slug status indicator */}
+                    <div className="h-5">
+                      {slugChecking && (
+                        <p className="text-xs text-muted-foreground flex items-center gap-1">
+                          <div className="w-3 h-3 border-2 border-muted-foreground/30 border-t-muted-foreground rounded-full animate-spin" />
+                          Checking availability...
+                        </p>
+                      )}
+                      {!slugChecking && slugStatus?.available && (
+                        <p className="text-xs text-orange-500 flex items-center gap-1">
+                          <CheckCircle2 className="w-3 h-3" />
+                          repfitapp.com/{slug} is available!
+                        </p>
+                      )}
+                      {!slugChecking && slugStatus && !slugStatus.available && (
+                        <p className="text-xs text-red-500">
+                          {slugStatus.error}
+                        </p>
+                      )}
+                    </div>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="city" className="text-foreground font-semibold">City</Label>
@@ -608,7 +742,7 @@ export default function OnboardingPage() {
 
                 <Button
                   type="submit"
-                  disabled={isLoading || !details.name || !details.city}
+                  disabled={isLoading || !details.name || !details.city || !slug || slug.length < 3 || !slugStatus?.available}
                   className="w-full h-14 bg-[#FC4C02] hover:bg-[#E34402] text-white font-bold rounded-lg"
                 >
                   {isLoading ? (
@@ -641,9 +775,39 @@ export default function OnboardingPage() {
               </motion.div>
 
               <h2 className="text-4xl font-bold tracking-tight">You're In!</h2>
-              <p className="text-xl text-muted-foreground">
-                Redirecting you to subscription setup...
-              </p>
+
+              {createdGymSlug && (
+                <div className="w-full max-w-md space-y-3">
+                  <p className="text-muted-foreground">Share this link with your gym members:</p>
+                  <div className="flex items-center gap-2 bg-card border border-border rounded-xl p-3">
+                    <Link2 className="w-5 h-5 text-[#FC4C02] flex-shrink-0" />
+                    <span className="text-sm font-medium flex-1 truncate">repfitapp.com/{createdGymSlug}</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigator.clipboard.writeText(`https://repfitapp.com/${createdGymSlug}`)
+                        setLinkCopied(true)
+                        setTimeout(() => setLinkCopied(false), 2000)
+                      }}
+                      className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[#FC4C02] hover:bg-[#E34402] text-white text-xs font-medium transition-colors"
+                    >
+                      {linkCopied ? (
+                        <><CheckCircle2 className="w-3 h-3" /> Copied!</>
+                      ) : (
+                        <><Copy className="w-3 h-3" /> Copy</>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              <Button
+                className="mt-4 bg-[#FC4C02] hover:bg-[#E34402] text-white px-8"
+                onClick={() => router.push('/admin')}
+              >
+                Go to Dashboard
+                <ArrowRight className="w-4 h-4 ml-2" />
+              </Button>
             </motion.div>
           )}
         </AnimatePresence>

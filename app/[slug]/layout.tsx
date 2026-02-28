@@ -3,15 +3,31 @@ import { notFound } from "next/navigation"
 import { getGymBySlug } from "@/lib/actions/public-gym"
 import type { Metadata } from "next"
 import Link from "next/link"
-import Image from "next/image"
+import { createClient } from "@/lib/supabase/server"
+import { ensureProfileExists } from "@/lib/actions/profile"
+import PublicHeader from "@/components/public-header"
 
 interface GymLayoutProps {
     children: React.ReactNode
     params: Promise<{ slug: string }>
 }
 
+// Reserved paths — if someone hits one of these, it's not a gym slug
+const RESERVED_PATHS = new Set([
+    "admin", "dashboard", "auth", "onboarding", "api", "gym", "explore",
+    "settings", "login", "signup", "register", "profile",
+    "account", "billing", "pricing", "about", "contact",
+    "help", "support", "terms", "privacy", "test",
+    "_next", "favicon.ico", "repfit-logo.png",
+])
+
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
     const { slug } = await params
+
+    if (RESERVED_PATHS.has(slug)) {
+        return { title: "REPFIT" }
+    }
+
     const { gym } = await getGymBySlug(slug)
 
     if (!gym) {
@@ -33,33 +49,30 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
 export default async function GymLayout({ children, params }: GymLayoutProps) {
     const { slug } = await params
+
+    // Don't intercept reserved paths
+    if (RESERVED_PATHS.has(slug)) {
+        notFound()
+    }
+
     const { gym } = await getGymBySlug(slug)
 
     if (!gym) {
         notFound()
     }
 
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+
+    let profile = null
+    if (user) {
+        const profileResult = await ensureProfileExists(user.id, user.email || "")
+        profile = profileResult.success ? profileResult.profile : null
+    }
+
     return (
         <div className="min-h-screen bg-background">
-            {/* Lightweight public header */}
-            <header className="sticky top-0 z-50 border-b border-border/40 bg-background/80 backdrop-blur-xl">
-                <nav className="container flex h-14 items-center justify-between px-4">
-                    <div className="flex items-center gap-3">
-                        <Link href="/" className="flex items-center gap-2">
-                            <Image src="/repfit-logo.png" alt="REPFIT" width={28} height={28} className="rounded-md" />
-                            <span className="text-sm font-medium text-muted-foreground">REPFIT</span>
-                        </Link>
-                        <span className="text-muted-foreground/40">/</span>
-                        <span className="font-semibold text-foreground">{gym.name}</span>
-                    </div>
-                    <Link
-                        href="/auth/login"
-                        className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-                    >
-                        Sign In
-                    </Link>
-                </nav>
-            </header>
+            <PublicHeader gym={gym} user={user} profile={profile} />
 
             <main>{children}</main>
 
@@ -71,3 +84,4 @@ export default async function GymLayout({ children, params }: GymLayoutProps) {
         </div>
     )
 }
+
