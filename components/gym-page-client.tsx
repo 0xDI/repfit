@@ -180,67 +180,77 @@ function MemberView({ gym, memberData, location, onShare, copied }: {
     copied: boolean
 }) {
     return (
-        <div>
-            {/* Compact Member Header */}
-            <section className="border-b border-border/40 bg-secondary/20">
-                <div className="container px-4 py-6">
+        <div className="min-h-screen">
+            {/* Premium Member Header */}
+            <section className="relative overflow-hidden">
+                {/* Subtle gradient background */}
+                <div className="absolute inset-0 bg-gradient-to-b from-primary/5 via-transparent to-transparent pointer-events-none" />
+                <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-primary via-orange-500 to-primary" />
+
+                <div className="container relative px-4 py-8 md:py-10">
                     <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                        <div className="space-y-1">
-                            <div className="flex items-center gap-3">
-                                <h1 className="text-2xl font-bold tracking-tight">{gym.name}</h1>
-                                <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-bold border border-primary/20">
-                                    <CheckCircle2 className="h-3.5 w-3.5" /> Member
+                        <div className="space-y-2">
+                            <div className="flex items-center gap-3 flex-wrap">
+                                <h1 className="text-3xl font-black tracking-tight">{gym.name}</h1>
+                                <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-500 text-xs font-bold border border-emerald-500/20">
+                                    <CheckCircle2 className="h-3.5 w-3.5" /> Active Member
                                 </div>
                             </div>
-                            {location && (
-                                <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                                    <MapPin className="h-4 w-4" /> {location}
-                                </div>
-                            )}
+                            <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
+                                {location && (
+                                    <span className="flex items-center gap-1.5">
+                                        <MapPin className="h-4 w-4 text-primary/60" /> {location}
+                                    </span>
+                                )}
+                                {gym.phone && (
+                                    <a href={`tel:${gym.phone}`} className="flex items-center gap-1.5 hover:text-primary transition-colors">
+                                        <Phone className="h-4 w-4 text-primary/60" /> {gym.phone}
+                                    </a>
+                                )}
+                                {gym.email && (
+                                    <span className="flex items-center gap-1.5">
+                                        <Mail className="h-4 w-4 text-primary/60" /> {gym.email}
+                                    </span>
+                                )}
+                            </div>
                         </div>
-                        <div className="flex items-center gap-3">
-                            {gym.phone && (
-                                <a href={`tel:${gym.phone}`} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-primary transition-colors">
-                                    <Phone className="h-4 w-4" /> {gym.phone}
-                                </a>
-                            )}
-                            <Button variant="outline" size="sm" onClick={onShare} className="rounded-xl">
-                                <Share2 className="h-4 w-4 mr-1.5" />
-                                {copied ? 'Copied!' : 'Share'}
-                            </Button>
-                        </div>
+                        <Button variant="outline" size="sm" onClick={onShare} className="rounded-xl border-border/60 hover:border-primary/40 hover:bg-primary/5">
+                            <Share2 className="h-4 w-4 mr-1.5" />
+                            {copied ? 'Copied!' : 'Share'}
+                        </Button>
                     </div>
                 </div>
+                <div className="border-b border-border/30" />
             </section>
 
             {/* Full Dashboard Content */}
-            <main className="mx-auto w-full max-w-2xl space-y-4 p-4 md:max-w-7xl md:space-y-6 md:p-8">
-                {/* Subscription Warning */}
+            <main className="mx-auto w-full max-w-2xl space-y-5 p-4 pt-6 md:max-w-7xl md:space-y-6 md:p-8">
+                {/* Subscription Warning — soft styling */}
                 {memberData.hasNoSubscription && (
-                    <Card className="border-primary bg-primary/10 shadow-sm">
-                        <CardContent className="p-4 md:p-6">
-                            <div className="flex items-start gap-3">
-                                <Info className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-                                <div className="flex-1 space-y-3">
-                                    <div>
-                                        <h3 className="font-semibold text-primary">No Active Subscription</h3>
-                                        <p className="text-sm text-foreground/80 mt-1">
-                                            You need an active subscription plan to book sessions. Contact the gym to get started!
-                                        </p>
-                                    </div>
-                                    {gym.phone && (
-                                        <a
-                                            href={`tel:${gym.phone}`}
-                                            className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors shadow-sm shadow-primary/20"
-                                        >
-                                            <Phone className="h-4 w-4" />
-                                            Call {gym.phone}
-                                        </a>
-                                    )}
-                                </div>
+                    <div className="rounded-2xl bg-gradient-to-r from-primary/[0.06] to-orange-500/[0.04] border border-primary/10 p-5 md:p-6">
+                        <div className="flex items-start gap-4">
+                            <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                                <Info className="h-5 w-5 text-primary" />
                             </div>
-                        </CardContent>
-                    </Card>
+                            <div className="flex-1 space-y-3">
+                                <div>
+                                    <h3 className="font-bold text-foreground">No Active Subscription</h3>
+                                    <p className="text-sm text-muted-foreground mt-1">
+                                        You need an active subscription to book sessions. Contact the gym to get started.
+                                    </p>
+                                </div>
+                                {gym.phone && (
+                                    <a
+                                        href={`tel:${gym.phone}`}
+                                        className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-all active:scale-95 shadow-sm shadow-primary/20"
+                                    >
+                                        <Phone className="h-4 w-4" />
+                                        Call {gym.phone}
+                                    </a>
+                                )}
+                            </div>
+                        </div>
+                    </div>
                 )}
 
                 {/* Stats Cards */}
@@ -256,7 +266,7 @@ function MemberView({ gym, memberData, location, onShare, copied }: {
                 />
 
                 {/* BookingCalendar + MyBookings Grid */}
-                <div className="grid w-full gap-4 md:gap-6 lg:grid-cols-2">
+                <div className="grid w-full gap-5 md:gap-6 lg:grid-cols-2">
                     <div id="booking" className="min-w-0">
                         <BookingCalendar
                             sessions={memberData.sessionsWithParticipants || []}
