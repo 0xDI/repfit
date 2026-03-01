@@ -50,15 +50,15 @@ export default function PublicHeader({ gym, user, profile }: PublicHeaderProps) 
     return (
         <header className="sticky top-0 z-50 border-b border-border/40 bg-background/80 backdrop-blur-xl">
             <nav className="container flex h-16 items-center justify-between px-4">
-                <div className="flex items-center gap-4 sm:gap-6">
+                <div className="flex items-center gap-1.5 sm:gap-3">
                     <Link href="/" className="flex items-center gap-2.5 group transition-opacity hover:opacity-80">
-                        <div className="relative h-9 w-9 overflow-hidden rounded-xl bg-orange-500/10 p-1 border border-orange-500/20">
-                            <Image src="/repfit-logo.png" alt="REPFIT" width={32} height={32} className="object-contain" />
+                        <div className="relative h-8 w-8 overflow-hidden rounded-xl bg-orange-500/10 p-1 border border-orange-500/20 flex flex-shrink-0">
+                            <Image src="/repfit-logo.png" alt="REPFIT" fill className="object-contain p-0.5" />
                         </div>
-                        <span className="text-base font-bold tracking-tight text-foreground hidden xs:block">REPFIT</span>
+                        <span className="text-sm font-semibold tracking-tight text-foreground hidden sm:block">REPFIT</span>
                     </Link>
 
-                    <div className="h-6 w-px bg-border/40" />
+                    <span className="text-muted-foreground/30 font-light text-xl select-none hidden sm:block">/</span>
 
                     <GymSwitcher currentGymName={gym.name} currentGymSlug={gym.slug} />
                 </div>
