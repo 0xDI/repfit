@@ -53,35 +53,35 @@ export default async function HomePage() {
             <div className="absolute bottom-[20%] right-[-10%] w-[35%] h-[35%] bg-primary/15 rounded-full blur-[100px]" />
           </div>
 
-          <div className="container px-4 text-center space-y-10 relative">
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-bold uppercase tracking-widest animate-in fade-in slide-in-from-bottom-4 duration-700">
-              <Sparkles className="h-3.5 w-3.5" />
-              Your fitness journey starts here
+          <div className="container px-4 relative flex flex-col items-center justify-center text-center space-y-8 min-h-[60vh]">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-white/70 text-xs font-medium tracking-wide">
+              <Sparkles className="h-3.5 w-3.5 text-primary" />
+              <span>The New Standard in Fitness</span>
             </div>
 
-            <h1 className="text-5xl sm:text-8xl font-black tracking-tighter text-foreground leading-[0.9] max-w-5xl mx-auto">
-              Find and Book <br />
-              <span className="bg-gradient-to-r from-primary via-orange-500 to-primary bg-clip-text text-transparent group relative inline-block">
-                The Best Gyms
-              </span> Near You
-            </h1>
+            <div className="space-y-4 max-w-4xl mx-auto">
+              <h1 className="text-5xl sm:text-7xl lg:text-8xl font-black tracking-[-0.04em] text-white leading-[1.05] text-balance">
+                Elite Gyms.<br />
+                <span className="text-white/60">Zero Friction.</span>
+              </h1>
+            </div>
 
-            <p className="mx-auto max-w-2xl text-lg sm:text-xl text-muted-foreground leading-relaxed animate-in fade-in slide-in-from-bottom-6 duration-1000">
-              Repfit is the bridge between you and elite fitness destinations. Discover local sessions, join communities, and hit your peak performance.
+            <p className="max-w-xl mx-auto text-lg sm:text-xl text-white/50 leading-relaxed font-medium text-balance">
+              Find, book, and access the world's best training facilities instantly. No memberships required.
             </p>
 
-            <div className="mx-auto max-w-2xl bg-card/50 backdrop-blur-md border border-border/60 p-2 rounded-[2rem] shadow-2xl shadow-primary/10 flex flex-col sm:flex-row gap-2 animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-200">
-              <div className="flex-1 relative">
-                <Search className="absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+            <div className="w-full max-w-xl mx-auto pt-4 flex flex-col sm:flex-row gap-3">
+              <div className="relative flex-1">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-white/40" />
                 <Input
-                  placeholder="San Francisco, CA..."
-                  className="h-14 border-none bg-transparent pl-12 focus-visible:ring-0 text-lg placeholder:text-muted-foreground/60 font-medium"
+                  placeholder="Enter your city or zip code..."
+                  className="h-14 w-full rounded-2xl border border-white/10 bg-white/5 pl-12 pr-4 text-base text-white placeholder:text-white/40 focus:border-white/20 focus:ring-0 transition-colors"
                 />
               </div>
-              <Link href="/explore">
-                <Button size="lg" className="h-14 px-10 rounded-[1.5rem] bg-primary hover:bg-primary/90 text-primary-foreground font-bold shadow-xl shadow-primary/20 group text-lg transition-all active:scale-95">
+              <Link href="/explore" className="w-full sm:w-auto">
+                <Button size="lg" className="w-full sm:w-auto h-14 px-8 rounded-2xl bg-white text-black hover:bg-white/90 font-bold text-base transition-transform active:scale-95">
                   Explore
-                  <ArrowRight className="ml-3 h-5 w-5 transition-transform group-hover:translate-x-1.5" />
+                  <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </Link>
             </div>
