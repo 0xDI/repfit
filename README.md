@@ -1,17 +1,18 @@
-# REPFIT - Gym Management SaaS Platform
-
 <div align="center">
 
-![REPFIT Logo](public/repfit-logo.png)
+<img src="public/repfit-logo.png" width="120" alt="REPFIT Logo" />
 
-**Elite Gyms. Zero Friction.**
+# REPFIT
 
-[![Live Demo](https://img.shields.io/badge/Live%20Demo-repfitapp.com-orange?style=for-the-badge)](https://repfitapp.com)
-[![License](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)](LICENSE)
-[![Next.js](https://img.shields.io/badge/Next.js-15.0.5-black?style=for-the-badge&logo=next.js)](https://nextjs.org/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.9.3-blue?style=for-the-badge&logo=typescript)](https://www.typescriptlang.org/)
+**Gym Management SaaS Platform**
 
-Find, book, and access the world's best training facilities instantly. Manage all your workouts from a single profile.
+[![Next.js](https://img.shields.io/badge/Next.js-15-black?logo=next.js&logoColor=white)](https://nextjs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.9-blue?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Supabase](https://img.shields.io/badge/Supabase-Auth+%20DB-3ECF8E?logo=supabase&logoColor=white)](https://supabase.com/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind%20CSS-3.4-38B2AC?logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
+[![Stripe](https://img.shields.io/badge/Stripe-Payments-635BFF?logo=stripe&logoColor=white)](https://stripe.com/)
+
+*Active SaaS project at [repfitapp.com](https://repfitapp.com). Open-sourcing the core platform.*
 
 </div>
 
