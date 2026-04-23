@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="public/repfit-logo.png" width="120" alt="REPFIT Logo" />
+<img src="public/repfit-logo.png" width="64" alt="REPFIT Logo" />
 
 # REPFIT
 
